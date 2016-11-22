@@ -9,7 +9,7 @@
 using namespace llvm;
 using namespace object;
 
-void printMachoInformation(MachOObjectFile *obj) {
+void printMachOInformation(MachOObjectFile *obj) {
 	// TODO: clean up this mess and finish it. Should just print relevant header-infos
 	
 	/* TODO: print should look like this:
@@ -48,6 +48,16 @@ void printMachoInformation(MachOObjectFile *obj) {
 	}
 }
 
+void parseMachOSymbols(MachOObjectFile *obj) {
+	auto symbs = obj->symbols();
+	
+	for (BasicSymbolRef sym : symbs) {
+		sym.printName(errs());
+		errs() << "\r\n";
+	}
+	
+}
+
 int main(int argc, char **argv) {
 	if (argc < 2) {
 		printf("Not enough params :(");
@@ -74,11 +84,12 @@ int main(int argc, char **argv) {
 	if (SymbolicFile *symbol = dyn_cast<SymbolicFile>(&bin)) {
 		// ensure this is a mach-o
 		if (MachOObjectFile *macho = dyn_cast<MachOObjectFile>(symbol)) {
-			printMachoInformation(macho);
+			printMachOInformation(macho);
+			parseMachOSymbols(macho);
 			
 		}
 		else {
-			pritnf("What is this?\r\n");
+			printf("What is this?\r\n");
 			return 3;
 		}
 	}

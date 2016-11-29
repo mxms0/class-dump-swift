@@ -3,9 +3,10 @@
  * Yes.
 */
 
-#include "llvm/Object/ObjectFile.h"
-#include "llvm/Object/MachO.h"
-#include "llvm/Object/MachOUniversal.h"
+#include <llvm/Object/ObjectFile.h>
+#include <llvm/Object/MachO.h>
+#include <llvm/Object/MachOUniversal.h>
+#include <dlfcn.h>
 
 using namespace llvm;
 using namespace object;
@@ -49,22 +50,117 @@ void printMachOInformation(MachOObjectFile *obj) {
 	}
 }
 
-std::string nameFromMangledSymbolString(std::string mangl) {
+int ctoi(char i) {
+	return i - '0';
+}
+
+
+std::string classNameFromMangledSymbolString(const char *mangl) {
+	// yes, these are all really gross. Sorry.
+	
+	int len = 0;
+	int numLen = 0;
+	bool hasNamespace = false;
+	
+	for (size_t i = 0; i < strlen(mangl); i++) {
+		switch (mangl[i]) {
+			case '_': {
+				break;
+			}
+
+			default: {
+				if (isdigit(mangl[i])) {
+					numLen++;
+					len = 10 * len;
+					len += ctoi(mangl[i]);
+				}
+				else if (len > 0) {
+					// we've already read in some digits, now it's over. reset vars too
+					if (hasNamespace) {
+						char *buf = (char *)malloc(len + 1);
+					
+						for (int j = 0; j < len; j++) {
+							buf[j] = mangl[i + j];
+						}
+					
+						buf[len] = '\0';
+					
+						return std::string(buf);
+					}
+					else {
+						len = 0;
+						numLen = 0;
+						hasNamespace = true;
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	return std::string("");
+}
+
+std::string namespaceFromMangledSymbolString(const char *mangl) {
+	
+	int len = 0;
+	int numLen = 0;
+	
+	for (size_t i = 0; i < strlen(mangl); i++) {
+		switch (mangl[i]) {
+			case '_': {
+				break;
+			}
+				
+			default: {
+				if (isdigit(mangl[i])) {
+					numLen++;
+					len = 10 * len;
+					len += ctoi(mangl[i]);
+				}
+				else if (len > 0) {
+					// we've already read in some digits, now it's over. reset vars too
+					
+					char *buf = (char *)malloc(len + 1);
+					
+					for (int j = 0; j < len; j++) {
+						buf[j] = mangl[i + j];
+					}
+					
+					buf[len] = '\0';
+					
+					return std::string(buf);
+				}
+				break;
+			}
+		}
+	}
+	
+	return std::string("");
+}
+
+std::string signatureFromMangledSymbolString(const char *manl) {
 	// implement
 	return std::string("");
 }
 
-std::string signatureFromMangledSymbolString(std::string manl) {
-	// implement
-	return std::string("");
-}
-
-bool isSwiftSymbol(std::string mangl) {
+bool isSwiftSymbol(const char *mangl) {
 	// check if it starts with _T
-	return false;
+	return ((mangl[0] == '_' && mangl[1] == 'T') || (mangl[1] == '_' && mangl[2] == 'T'));
 }
 
 void parseMachOSymbols(MachOObjectFile *obj) {
+//	
+//	void *handle = dlopen("/Applications/Xcode.app/Contents/Developer/Toolchains/Swift_2.3.xctoolchain/usr/lib/libswiftDemangle.dylib", RTLD_NOW);
+//	if (!handle) {
+//		printf("[Error] probably wrong lib path. Change this dir %d", __LINE__);
+//		return;
+//	}
+//	
+//	void *dm = dlsym(handle, "swift_demangle_getDemangledName");
+//	
+//	size_t (*demangle)(const char *, char *, size_t) = (size_t (*)(const char *, char *, size_t))dm;
+
 	auto symbs = obj->symbols();
 	
 	for (SymbolRef sym : symbs) {
@@ -74,17 +170,20 @@ void parseMachOSymbols(MachOObjectFile *obj) {
 			continue;
 		}
 		
-		errs() << name->data() << "\r\n";
-		
-		if (isSwiftSymbol(name->str()) {
-			// should check type to see if its in the right seg of the binary
-			// otherwise pass to function to un-mangle and add to map
-			std::string className = nameFromMangledSymbolString(name->str());
-			std::string methodSignature = signatureFromMangledSymbolString(name->str());
+		if (isSwiftSymbol(name->data())) {
+			errs() << name->data() << "\r\n";
+			
+//			char buf[1024];
+//			demangle(name->data() + 1, buf, 1024);
+//			printf("%s\r\n", buf);
+//
+			std::string swiftNamespace = namespaceFromMangledSymbolString(name->data());
+			std::string className = classNameFromMangledSymbolString(name->data());
+			std::string methodSignature = signatureFromMangledSymbolString(name->data());
 			// do stuff with these
+			printf("[%s][%s][%s]\r\n", swiftNamespace.c_str(), className.c_str(), methodSignature.c_str());
 		}
 	}
-	
 }
 
 int main(int argc, char **argv) {

@@ -49,6 +49,21 @@ void printMachOInformation(MachOObjectFile *obj) {
 	}
 }
 
+std::string nameFromMangledSymbolString(std::string mangl) {
+	// implement
+	return std::string("");
+}
+
+std::string signatureFromMangledSymbolString(std::string manl) {
+	// implement
+	return std::string("");
+}
+
+bool isSwiftSymbol(std::string mangl) {
+	// check if it starts with _T
+	return false;
+}
+
 void parseMachOSymbols(MachOObjectFile *obj) {
 	auto symbs = obj->symbols();
 	
@@ -60,8 +75,14 @@ void parseMachOSymbols(MachOObjectFile *obj) {
 		}
 		
 		errs() << name->data() << "\r\n";
-		// should check type to see if its in the right seg of the binary
-		// otherwise pass to function to un-mangle and add to map
+		
+		if (isSwiftSymbol(name->str()) {
+			// should check type to see if its in the right seg of the binary
+			// otherwise pass to function to un-mangle and add to map
+			std::string className = nameFromMangledSymbolString(name->str());
+			std::string methodSignature = signatureFromMangledSymbolString(name->str());
+			// do stuff with these
+		}
 	}
 	
 }

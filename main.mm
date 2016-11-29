@@ -3,6 +3,7 @@
  * Yes.
 */
 
+#include "llvm/Object/ObjectFile.h"
 #include "llvm/Object/MachO.h"
 #include "llvm/Object/MachOUniversal.h"
 
@@ -51,9 +52,16 @@ void printMachOInformation(MachOObjectFile *obj) {
 void parseMachOSymbols(MachOObjectFile *obj) {
 	auto symbs = obj->symbols();
 	
-	for (BasicSymbolRef sym : symbs) {
-		sym.printName(errs());
-		errs() << "\r\n";
+	for (SymbolRef sym : symbs) {
+		auto name = sym.getName();
+		
+		if (!name) {
+			continue;
+		}
+		
+		errs() << name->data() << "\r\n";
+		// should check type to see if its in the right seg of the binary
+		// otherwise pass to function to un-mangle and add to map
 	}
 	
 }
@@ -95,11 +103,11 @@ int main(int argc, char **argv) {
 	}
 	
 	else if (MachOUniversalBinary *macho = dyn_cast<MachOUniversalBinary>(&bin)) {
-		printf("Found mach-o universal %p\r\n", macho);
+		printf("Found mach-o universal %p\r\n", (void *)macho);
 	}
 	
 	else if (Archive *archiv = dyn_cast<Archive>(&bin)) {
-		printf("Found archive %p\r\n", archiv);
+		printf("Found archive %p\r\n", (void *)archiv);
 	}
 	
 	else {

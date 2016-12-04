@@ -221,9 +221,7 @@ NAME,
 			/// \returns A parse tree for the demangled string - or a null pointer
 			/// on failure.
 			///
-			NodePointer
-			demangleSymbolAsNode(const char *mangledName, size_t mangledNameLength,
-								 const DemangleOptions &options = DemangleOptions());
+			NodePointer demangleSymbolAsNode(const char *mangledName, size_t mangledNameLength, const DemangleOptions &options = DemangleOptions());
 			
 			inline NodePointer
 			demangleSymbolAsNode(const std::string &mangledName,

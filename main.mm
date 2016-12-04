@@ -144,13 +144,15 @@ std::string namespaceFromMangledSymbolString(const char *mangl) {
 	return std::string("");
 }
 
-
-
-
 std::string signatureFromMangledSymbolString(const char *manl) {
 	// remove prefix
 
-	manl++;
+	manl++; // remove extra '_'
+	
+	auto nptr = swift::Demangle::demangleSymbolAsNode(manl, strlen(manl), swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
+	
+	
+	
 	std::string ret = swift::Demangle::demangleSymbolAsString(manl, swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
 	
 		printf("RET: %s\r\n", ret.c_str());

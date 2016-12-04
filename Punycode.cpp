@@ -192,23 +192,21 @@ bool Punycode::encodePunycode(const std::vector<uint32_t> &InputCodePoints,
   return true;
 }
 
-static bool encodeToUTF8(const std::vector<uint32_t> &Scalars,
-                         std::string &OutUTF8) {
-  for (auto S : Scalars) {
-    if (!isValidUnicodeScalar(S)) {
-      OutUTF8.clear();
-      return false;
-    }
-
-    unsigned Bytes = 0;
-    if (S < 0x80)
-      Bytes = 1;
-    else if (S < 0x800)
-      Bytes = 2;
-    else if (S < 0x10000)
-      Bytes = 3;
-    else
-      Bytes = 4;
+static bool encodeToUTF8(const std::vector<uint32_t> &Scalars, std::string &OutUTF8) {
+	for (auto S : Scalars) {
+		if (!isValidUnicodeScalar(S)) {
+			OutUTF8.clear();
+			return false;
+		}
+		unsigned Bytes = 0;
+		if (S < 0x80)
+			Bytes = 1;
+		else if (S < 0x800)
+			Bytes = 2;
+		else if (S < 0x10000)
+			Bytes = 3;
+		else
+			Bytes = 4;
 
     switch (Bytes) {
     case 1:

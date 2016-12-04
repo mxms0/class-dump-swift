@@ -3722,9 +3722,7 @@ std::string Demangle::nodeToString(NodePointer root,
   return NodePrinter(options).printRoot(root);
 }
 
-std::string Demangle::demangleSymbolAsString(const char *MangledName,
-                                             size_t MangledNameLength,
-                                             const DemangleOptions &Options) {
+std::string Demangle::demangleSymbolAsString(const char *MangledName, size_t MangledNameLength, const DemangleOptions &Options) {
   auto mangled = StringRef(MangledName, MangledNameLength);
   auto root = demangleSymbolAsNode(MangledName, MangledNameLength, Options);
   if (!root) return mangled.str();

@@ -11,6 +11,7 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include "Demangle.h"
 
 using namespace llvm;
 using namespace object;
@@ -143,8 +144,18 @@ std::string namespaceFromMangledSymbolString(const char *mangl) {
 	return std::string("");
 }
 
+
+
+
 std::string signatureFromMangledSymbolString(const char *manl) {
-	// implement
+	// remove prefix
+
+	manl++;
+	std::string ret = swift::Demangle::demangleSymbolAsString(manl, swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
+	
+		printf("RET: %s\r\n", ret.c_str());
+		return ret;
+	
 	return std::string("");
 }
 
@@ -185,10 +196,11 @@ void parseMachOSymbols(MachOObjectFile *obj) {
 			std::string className = classNameFromMangledSymbolString(name->data());
 			std::string methodSignature = signatureFromMangledSymbolString(name->data());
 			// do stuff with these
-			printf("[%s][%s][%s]\r\n", swiftNamespace.c_str(), className.c_str(), methodSignature.c_str());
+//			printf("[%s][%s][%s]\ r\n", swiftNamespace.c_str(), className.c_str(), methodSignature.c_str());
 		}
 	}
 }
+
 struct SDClass;
 struct SDClass {
 	std::string name;
@@ -200,7 +212,7 @@ struct SDClass {
 std::string indentation(int times) {
 	std::stringstream ss;
 	
-	for(int i=0; i<times; ++i) {
+	for (int i = 0; i < times; ++i) {
 		ss << "\t";
 	}
 	

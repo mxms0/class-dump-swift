@@ -1,6 +1,21 @@
 #!/usr/bin/swift
 import Foundation
 
+class NestA {
+	class NestB {
+		class NestC {
+			
+			init(_ a: String) {
+				self.ABC = [""]
+			}
+			
+			let ABC:[String]
+		}
+		
+	}
+	
+}
+
 class State {
 	
 	init(_ affairs:[String:AnyObject]) {

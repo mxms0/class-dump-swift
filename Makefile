@@ -3,4 +3,4 @@ all:
 
 
 clean:
-	rm -rf swiftd swiftd.dSYM
+	rm -rf swiftd swiftd.dSYM *.swifth

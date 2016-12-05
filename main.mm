@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <string.h>
 #include "Demangle.h"
 
 using namespace llvm;
@@ -334,6 +335,18 @@ int main(int argc, char **argv) {
 		printf("Not enough params :(");
 		return 1;
 	}
+	
+	char *outputDir = NULL;
+	
+	for (int i = 1; i < argc; i++) {
+		if (strncmp(argv[i], "-o", 2) == 0) {
+			if (argc >= i + 1) {
+				outputDir = argv[i + 1];
+			}
+		}
+	}
+	
+	printf("Output dir: [%s]\r\n", outputDir);
 
 	std::string fileName = std::string(argv[1]);
 	

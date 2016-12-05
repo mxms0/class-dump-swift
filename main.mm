@@ -144,6 +144,18 @@ std::string namespaceFromMangledSymbolString(const char *mangl) {
 	return std::string("");
 }
 
+void printTextForNode(swift::Demangle::NodePointer nptr) {
+	//std::cout << nptr->getKind();
+	if(nptr->hasText()) {
+		std::cout << ": " << nptr->getText() << "\n";
+	}
+	auto nitr = nptr->begin();
+	while(nitr != nptr->end()) {
+		printTextForNode(*nitr);
+		nitr++;
+	}
+}
+
 std::string signatureFromMangledSymbolString(const char *manl) {
 	// remove prefix
 
@@ -151,6 +163,7 @@ std::string signatureFromMangledSymbolString(const char *manl) {
 	
 	auto nptr = swift::Demangle::demangleSymbolAsNode(manl, strlen(manl), swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
 	
+	printTextForNode(nptr);
 	
 	
 	std::string ret = swift::Demangle::demangleSymbolAsString(manl, swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());

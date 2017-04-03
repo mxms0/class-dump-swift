@@ -1,7 +1,7 @@
 /* Swift Class Dumper
  *
  * Yes.
-*/
+ */
 
 #include <llvm/Object/ObjectFile.h>
 #include <llvm/Object/MachO.h>
@@ -11,6 +11,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <sys/stat.h>
 #include <iostream>
 #include <string.h>
 #include "Demangle.h"
@@ -50,12 +51,11 @@ void printMachOInformation(MachOObjectFile *obj) {
 		if (header64.cpusubtype | llvm::MachO::CPU_ARCH_ABI64) {
 			// confirms 64bit
 		}
-	
 		
 		header64 = obj->MachOObjectFile::getHeader64();
 		T = MachOObjectFile::getArchTriple(header64.cputype, header64.cpusubtype);
 		
-			printf("CPUType: 0x%x\r\nCPUSubtype: 0x%x", header64.cputype, header.cpusubtype);
+		printf("CPUType: 0x%x\r\nCPUSubtype: 0x%x", header64.cputype, header.cpusubtype);
 	}
 	else {
 		printf("32bit!\r\n");
@@ -73,6 +73,7 @@ int ctoi(char i) {
 
 std::string classNameFromMangledSymbolString(const char *mangl) {
 	// yes, these are all really gross. Sorry.
+	// this doesn't handle nesting properly. move to using swift lib functions.
 	
 	int len = 0;
 	int numLen = 0;
@@ -83,7 +84,7 @@ std::string classNameFromMangledSymbolString(const char *mangl) {
 			case '_': {
 				break;
 			}
-
+				
 			default: {
 				if (isdigit(mangl[i])) {
 					numLen++;
@@ -94,13 +95,13 @@ std::string classNameFromMangledSymbolString(const char *mangl) {
 					// we've already read in some digits, now it's over. reset vars too
 					if (hasNamespace) {
 						char *buf = (char *)malloc(len + 1);
-					
+						
 						for (int j = 0; j < len; j++) {
 							buf[j] = mangl[i + j];
 						}
-					
+						
 						buf[len] = '\0';
-					
+						
 						return std::string(buf);
 					}
 					else {
@@ -113,11 +114,12 @@ std::string classNameFromMangledSymbolString(const char *mangl) {
 			}
 		}
 	}
-
+	
 	return std::string("");
 }
 
 std::string namespaceFromMangledSymbolString(const char *mangl) {
+	// this doesn't handle nesting properly. move to using swift lib functions.
 	
 	int len = 0;
 	int numLen = 0;
@@ -157,36 +159,28 @@ std::string namespaceFromMangledSymbolString(const char *mangl) {
 
 void printTextForNode(swift::Demangle::NodePointer nptr) {
 	//std::cout << nptr->getKind();
-	if(nptr == nullptr) {
+	if (nptr == nullptr) {
 		return;
 	}
-	if(nptr->hasText()) {
+	if (nptr->hasText()) {
 		std::cout << ": " << nptr->getText() << "\n";
 	}
 	auto nitr = nptr->begin();
-	while(nitr != nptr->end()) {
+	
+	while (nitr != nptr->end()) {
 		printTextForNode(*nitr);
 		nitr++;
 	}
 }
 
 std::string signatureFromMangledSymbolString(const char *manl) {
-	// remove prefix
-
 	manl++; // remove extra '_'
 	
 	auto nptr = swift::Demangle::demangleSymbolAsNode(manl, strlen(manl), swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
 	
-	printTextForNode(nptr);
-	
-	
 	std::string ret = swift::Demangle::demangleSymbolAsString(manl, swift::Demangle::DemangleOptions::SimplifiedUIDemangleOptions());
 	
-		printf("RET: %s\r\n", ret.c_str());
-	
-		return ret;
-	
-	return std::string("");
+	return ret;
 }
 
 bool isSwiftSymbol(const char *mangl) {
@@ -195,17 +189,6 @@ bool isSwiftSymbol(const char *mangl) {
 }
 
 void parseMachOSymbols(MachOObjectFile *obj, std::string outputDir) {
-//	
-//	void *handle = dlopen("/Applications/Xcode.app/Contents/Developer/Toolchains/Swift_2.3.xctoolchain/usr/lib/libswiftDemangle.dylib", RTLD_NOW);
-//	if (!handle) {
-//		printf("[Error] probably wrong lib path. Change this dir %d", __LINE__);
-//		return;
-//	}
-//	
-//	void *dm = dlsym(handle, "swift_demangle_getDemangledName");
-//	
-//	size_t (*demangle)(const char *, char *, size_t) = (size_t (*)(const char *, char *, size_t))dm;
-
 	auto symbs = obj->symbols();
 	
 	std::map<std::string, SDClass*> classMap;
@@ -218,19 +201,11 @@ void parseMachOSymbols(MachOObjectFile *obj, std::string outputDir) {
 		}
 		
 		if (isSwiftSymbol(name->data())) {
-			errs() << name->data() << "\r\n";
 			
-//			char buf[1024];
-//			demangle(name->data() + 1, buf, 1024);
-//			printf("%s\r\n", buf);
-//
-			std::string swiftNamespace = namespaceFromMangledSymbolString(name->data());
 			std::string className = classNameFromMangledSymbolString(name->data());
 			std::string methodSignature = signatureFromMangledSymbolString(name->data());
-			// do stuff with these
-//			printf("[%s][%s][%s]\ r\n", swiftNamespace.c_str(), className.c_str(), methodSignature.c_str());
 			
-			if(!classMap[className]) {
+			if (!classMap[className]) {
 				auto classObj = new SDClass();
 				classObj->name = className;
 				classMap[className] = classObj;
@@ -268,7 +243,7 @@ std::string classHeaderContent(SDClass* cls, int indents) {
 	std::string indentingMeth = indentation(indents+1);
 	ss << indenting << "class " << cls->name << " {\n\n";
 	
-	for(SDClass* cl : cls->classes) {
+	for (SDClass* cl : cls->classes) {
 		ss << classHeaderContent(cl, indents+1) << "\n";
 	}
 	
@@ -282,12 +257,13 @@ std::string classHeaderContent(SDClass* cls, int indents) {
 
 void createSwiftHeader(std::ofstream* file, SDClass* cls) {
 	std::string strContent = classHeaderContent(cls, 0);
-	if(file != nullptr) {
+	if (file != nullptr) {
 		*file << "// \n";
 		*file << "// Class dump header generated by Swift-Class-Dump\n";
 		*file << "// \n\n";
 		*file << strContent;
-	} else {
+	}
+	else {
 		std::cout << "// \n";
 		std::cout << "// Class dump header generated by Swift-Class-Dump\n";
 		std::cout << "// \n\n";
@@ -295,52 +271,27 @@ void createSwiftHeader(std::ofstream* file, SDClass* cls) {
 	}
 }
 
-// Input: [Class { name:String, classes:[Class], methods:[String] }]
-// create file for each class
-// fill class with method signatures
-//
-
 void createSwiftHeaderFiles(std::vector<SDClass*> classes, std::string outputDir) {
 	for(SDClass* cls : classes) {
 		std::ofstream file;
-		if(outputDir != "") {
-			system(("mkdir -p "+outputDir).c_str());
+		
+		if (outputDir != "") {
+			mkdir(outputDir.c_str(), 0777);
+
+			
 			std::string filename = "./" + outputDir + "/" + cls->name + ".swifth";
 			file.open(filename);
 			// Write to file
 			createSwiftHeader(&file, cls);
-		} else {
+		}
+		else {
 			createSwiftHeader(nullptr, cls);
 		}
 		
-		if(outputDir != "") {
+		if (outputDir != "") {
 			file.close();
 		}
 	}
-}
-
-void test() {
-	std::vector<SDClass*> clss;
-	
-	SDClass* c1 = new SDClass();
-	c1->name = "c1";
-	
-	std::vector<std::string> c2meth;
-	c2meth.push_back("c2method1");
-	c2meth.push_back("c2method2");
-	c2meth.push_back("c2method3");
-	
-	SDClass* c2 = new SDClass();
-	c2->name = "c2";
-	c1->classes.push_back(c2);
-	c2->methods = c2meth;
-	
-	clss.push_back(c1);
-	
-	createSwiftHeaderFiles(clss, NULL);
-	
-	delete c1;
-	delete c2;
 }
 
 int main(int argc, char **argv) {
@@ -359,15 +310,9 @@ int main(int argc, char **argv) {
 		}
 	}
 	
-	printf("Output dir: [%s]\r\n", outputDir);
-
 	std::string fileName = std::string(argv[1]);
 	
 	llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> bufferOrError = llvm::MemoryBuffer::getFileOrSTDIN(fileName);
-	
-//	if (error(bufferOrError.getError(), fileName))
-//		return 1;
-
 	
 	auto binOrError = createBinary(bufferOrError.get()->getMemBufferRef(), nullptr);
 	
@@ -382,14 +327,14 @@ int main(int argc, char **argv) {
 		// ensure this is a mach-o
 		if (MachOObjectFile *macho = dyn_cast<MachOObjectFile>(symbol)) {
 			printMachOInformation(macho);
-			if(outputDir == NULL) {
+			if (outputDir == NULL) {
 				parseMachOSymbols(macho, "");
-			} else {
+			}
+			
+			else {
 				std::string str(outputDir);
 				parseMachOSymbols(macho, str);
 			}
-			
-			
 		}
 		else {
 			printf("What is this?\r\n");
@@ -399,6 +344,19 @@ int main(int argc, char **argv) {
 	
 	else if (MachOUniversalBinary *macho = dyn_cast<MachOUniversalBinary>(&bin)) {
 		printf("Found mach-o universal %p\r\n", (void *)macho);
+		if (MachOObjectFile *macho = dyn_cast<MachOObjectFile>(symbol)) {
+			printMachOInformation(macho);
+			if(outputDir == NULL) {
+				parseMachOSymbols(macho, "");
+			} else {
+				std::string str(outputDir);
+				parseMachOSymbols(macho, str);
+			}
+		}
+		else {
+			printf("What is this?\r\n");
+			return 3;
+		}
 	}
 	
 	else if (Archive *archiv = dyn_cast<Archive>(&bin)) {
